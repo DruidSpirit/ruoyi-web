@@ -291,6 +291,7 @@ export interface ChatMessageVo {
 }
 
 export interface workflowVo {
+  keyword?: string;
   currentPage?: number;
 
   pageSize?: number;

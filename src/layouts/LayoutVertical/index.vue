@@ -33,10 +33,7 @@ useWindowWidthObserver();
     </el-header>
     <el-container class="layout-container-main">
       <Aside />
-      <el-main class="layout-main">
-        <!-- 路由页面 -->
-        <Main />
-      </el-main>
+      <Main />
     </el-container>
   </el-container>
 </template>
@@ -46,18 +43,38 @@ useWindowWidthObserver();
   position: relative;
   width: 100%;
   height: 100vh;
+  height: 100dvh;
   overflow: hidden;
   .layout-header {
+    height: var(--header-container-default-heigth);
     padding: 0;
   }
   .layout-main {
-    height: 100%;
+    --workspace-padding: clamp(16px, 2.4vw, 40px);
+    --workspace-top-gap: clamp(16px, 2.5dvh, 28px);
+    --workspace-section-gap: clamp(14px, 2.5dvh, 24px);
+    --workspace-panel-padding: clamp(16px, 2vw, 24px);
+    min-width: 0;
+    min-height: 0;
+    container: workspace / inline-size;
     padding: 0;
   }
   .layout-container-main {
+    min-width: 0;
+    min-height: 0;
     margin-left: var(--sidebar-left-container-default-width, 0);
     transition: margin-left 0.3s ease;
   }
+}
+
+@media (max-height: 760px) {
+  .layout-container .layout-main {
+    --workspace-panel-padding: 16px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .layout-container .layout-container-main { transition: none; }
 }
 
 /** 去除菜单右侧边框 */

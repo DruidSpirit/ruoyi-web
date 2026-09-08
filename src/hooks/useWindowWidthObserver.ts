@@ -1,12 +1,12 @@
 import type { MaybeRef } from 'vue';
 import { onBeforeUnmount, ref, unref, watch } from 'vue';
-import { COLLAPSE_THRESHOLD, SIDE_BAR_WIDTH } from '@/config/index';
+import { COLLAPSE_THRESHOLD } from '@/config/index';
 import { useDesignStore } from '@/stores';
 
 /**
  * 这里逻辑是研究豆包的折叠逻辑后，设计的折叠方法
  * 基于ResizeObserver的窗口宽度监听hooks（高性能实时监控）
- * @param threshold 宽度阈值（默认600px，支持响应式）
+ * @param threshold 宽度阈值（默认使用全局配置，支持响应式）
  * @param onChange 自定义回调（传入则覆盖默认逻辑，参数：当前视口宽度是否超过阈值）
  * @returns {object} 包含卸载监听的方法及当前状态
  */
@@ -18,7 +18,7 @@ export function useWindowWidthObserver(
   const currentWidth = ref(window.innerWidth);
   const isAboveThreshold = ref(false);
   const thresholdRef = ref(threshold);
-  let prevIsAbove = false; // 记录上一次状态，避免重复触发
+  let prevIsAbove: boolean | undefined; // 首次在窄窗口打开时也需要计算折叠状态
 
   // 默认逻辑：修改全局折叠状态
   const updateCollapseState = (isAbove: boolean) => {
@@ -49,7 +49,7 @@ export function useWindowWidthObserver(
     if (!designStore.isCollapse) {
       document.documentElement.style.setProperty(
         `--sidebar-left-container-default-width`,
-        `${SIDE_BAR_WIDTH}px`,
+        'var(--sidebar-default-width)',
       );
     }
     else {
@@ -110,7 +110,7 @@ export function useWindowWidthObserver(
 // 1. 基础使用（保留默认折叠逻辑）
 // <script setup lang="ts">
 // import { useWindowWidthObserver } from '@/hooks/useWindowWidthObserver';
-// // 使用默认阈值600px，自动修改全局折叠状态
+// // 使用全局折叠阈值，自动修改全局折叠状态
 // useWindowWidthObserver();
 // </script>
 

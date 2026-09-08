@@ -18,6 +18,7 @@ const sessionId = computed(() => route.params?.id);
 const conversationsList = computed(() => sessionStore.sessionList);
 const loadMoreLoading = computed(() => sessionStore.isLoadingMore);
 const isAppMarketActive = computed(() => route.name === 'appMarket');
+const isMediaActive = computed(() => route.name === 'mediaWorkbench');
 const active = ref<string | undefined>();
 
 const searchKeyword = computed({
@@ -227,6 +228,11 @@ function handleMenuCommand(command: string, item: ConversationItem<ChatSessionVo
           <span>应用市场</span>
         </div>
 
+        <router-link :to="{ name: 'mediaWorkbench' }" class="workbench-entry media-entry" :class="{ active: isMediaActive }">
+          <el-icon><VideoCamera /></el-icon>
+          <span>媒体工作台</span>
+        </router-link>
+
         <div class="divider" />
 
         <div class="aside-content">
@@ -273,6 +279,7 @@ function handleMenuCommand(command: string, item: ConversationItem<ChatSessionVo
 <style scoped lang="scss">
 // 鍩虹鏍峰紡
 .aside-container {
+  box-sizing: border-box;
   position: absolute;
   top: 0;
   left: 0;
@@ -290,6 +297,7 @@ function handleMenuCommand(command: string, item: ConversationItem<ChatSessionVo
     // 渚ц竟鏍忓ご閮ㄦ牱寮?
     .aside-header {
       display: flex;
+      flex-shrink: 0;
       align-items: center;
       height: 36px;
       margin: 10px 12px 0;
@@ -319,8 +327,13 @@ function handleMenuCommand(command: string, item: ConversationItem<ChatSessionVo
 
     // 渚ц竟鏍忓唴瀹规牱寮?
     .aside-body {
+      display: flex;
+      flex: 1;
+      flex-direction: column;
+      min-height: 0;
       // 鎼滅储妗嗘牱寮?
       .search-wrapper {
+        flex-shrink: 0;
         padding: 16px 12px 12px;
         .search-input {
           :deep(.el-input__wrapper) {
@@ -352,6 +365,7 @@ function handleMenuCommand(command: string, item: ConversationItem<ChatSessionVo
 
       // 鍒嗗壊绾?
       .divider {
+        flex-shrink: 0;
         height: 1px;
         margin: 12px;
         background-color: rgb(0 0 0 / 6%);
@@ -360,6 +374,7 @@ function handleMenuCommand(command: string, item: ConversationItem<ChatSessionVo
       // 入口按钮组基类：共享基线，组内紧凑、组外留白，形成视觉分组
       %entry-btn {
         display: flex;
+        flex-shrink: 0;
         gap: 8px;
         align-items: center;
         height: 38px;
@@ -392,6 +407,7 @@ function handleMenuCommand(command: string, item: ConversationItem<ChatSessionVo
         @extend %entry-btn;
 
         color: rgb(0 0 0 / 78%);
+        &.media-entry { text-decoration: none; }
         &:hover {
           background-color: rgb(0 0 0 / 4%);
         }
@@ -404,12 +420,12 @@ function handleMenuCommand(command: string, item: ConversationItem<ChatSessionVo
         display: flex;
         flex: 1;
         flex-direction: column;
-        height: 100%;
         min-height: 0;
 
         // 浼氳瘽鍒楄〃楂樺害-鍩虹鏍峰紡
         .conversations-wrap {
-          height: calc(100vh - 180px);
+          flex: 1;
+          min-height: 0;
           .label {
             display: flex;
             align-items: center;
@@ -426,7 +442,7 @@ function handleMenuCommand(command: string, item: ConversationItem<ChatSessionVo
   position: absolute;
   top: 54px;
   z-index: 22;
-  height: auto;
+  height: calc(100% - 110px);
   max-height: calc(100% - 110px);
   padding-bottom: 12px;
   overflow: hidden;
@@ -453,7 +469,7 @@ function handleMenuCommand(command: string, item: ConversationItem<ChatSessionVo
 // 鎮仠鏍峰紡
 .aside-container-collapse:hover,
 .aside-container-collapse.aside-container-suspended {
-  height: auto;
+  height: calc(100% - 110px);
   max-height: calc(100% - 110px);
   padding-bottom: 12px;
   overflow: hidden;
@@ -472,9 +488,6 @@ function handleMenuCommand(command: string, item: ConversationItem<ChatSessionVo
   transition: opacity 0.3s ease 0s, transform 0.3s ease 0s;
 
   // 浼氳瘽鍒楄〃楂樺害-鎮仠鏍峰紡
-  .conversations-wrap {
-    height: calc(100vh - 155px) !important;
-  }
 }
 
 // 鏍峰紡绌块€?

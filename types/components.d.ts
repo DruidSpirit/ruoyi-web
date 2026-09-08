@@ -28,6 +28,9 @@ declare module 'vue' {
     ElInput: typeof import('element-plus/es')['ElInput']
     ElInputNumber: typeof import('element-plus/es')['ElInputNumber']
     ElMain: typeof import('element-plus/es')['ElMain']
+    ElOption: typeof import('element-plus/es')['ElOption']
+    ElPagination: typeof import('element-plus/es')['ElPagination']
+    ElSelect: typeof import('element-plus/es')['ElSelect']
     ElSwitch: typeof import('element-plus/es')['ElSwitch']
     ElTag: typeof import('element-plus/es')['ElTag']
     ElTooltip: typeof import('element-plus/es')['ElTooltip']
@@ -43,6 +46,7 @@ declare module 'vue' {
     SvgIcon: typeof import('./../src/components/SvgIcon/index.vue')['default']
     VerificationCode: typeof import('./../src/components/LoginDialog/components/FormLogin/VerificationCode.vue')['default']
     WelecomeText: typeof import('./../src/components/WelecomeText/index.vue')['default']
+    WorkflowIcon: typeof import('./../src/components/WorkflowIcon/index.vue')['default']
   }
   export interface GlobalDirectives {
     vLoading: typeof import('element-plus/es')['ElLoadingDirective']

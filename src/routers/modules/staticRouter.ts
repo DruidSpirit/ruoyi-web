@@ -35,6 +35,12 @@ export const layoutRouter: RouteRecordRaw[] = [
           icon: 'Grid',
         },
       },
+      {
+        path: '/media',
+        name: 'mediaWorkbench',
+        component: () => import('@/pages/media/index.vue'),
+        meta: { title: '媒体工作台', stayOnAuthExpired: true },
+      },
     ],
   },
 ];

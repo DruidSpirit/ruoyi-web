@@ -1,7 +1,6 @@
 <!-- 侧边栏折叠按钮 -->
 <script setup lang="ts">
 import SvgIcon from '@/components/SvgIcon/index.vue';
-import { SIDE_BAR_WIDTH } from '@/config/index';
 import { useCollapseToggle } from '@/hooks/useCollapseToggle';
 import { useDesignStore } from '@/stores';
 
@@ -17,7 +16,7 @@ function handleChangeCollapse() {
   if (!designStore.isCollapse) {
     document.documentElement.style.setProperty(
       `--sidebar-left-container-default-width`,
-      `${SIDE_BAR_WIDTH}px`,
+      'var(--sidebar-default-width)',
     );
   }
   else {

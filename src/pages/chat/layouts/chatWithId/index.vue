@@ -5,7 +5,7 @@ import type { BubbleProps } from 'vue-element-plus-x/types/Bubble';
 import type { BubbleListInstance } from 'vue-element-plus-x/types/BubbleList';
 import type { ThinkingStatus } from 'vue-element-plus-x/types/Thinking';
 import type { ToolCallInfo } from './types';
-import type { SendDTO, WfNodeInput, WfNodeInputDef } from '@/api/chat/types';
+import type { SendDTO } from '@/api/chat/types';
 import { useHookFetch } from 'hook-fetch/vue';
 import { nextTick } from 'vue';
 import { useRoute } from 'vue-router';
@@ -16,7 +16,9 @@ import { useChatStore } from '@/stores/modules/chat';
 import { useModelStore } from '@/stores/modules/model';
 import { useUserStore } from '@/stores/modules/user';
 import { codeXRender } from '@/utils/markdownRenderers';
+import { buildWorkflowInputs, workflowFinalText } from '@/utils/workflow';
 import ToolCallCard from './components/ToolCallCard.vue';
+import WorkflowRunStatus from './components/WorkflowRunStatus.vue';
 
 type MessageItem = BubbleProps & {
   key: number;
@@ -26,6 +28,7 @@ type MessageItem = BubbleProps & {
   thinlCollapse?: boolean;
   reasoning_content?: string;
   class?: string;
+  workflowRun?: { title: string; status: 'running' | 'success' | 'error' | 'stopped'; nodes: number };
 };
 
 const route = useRoute();
@@ -145,6 +148,9 @@ async function startSSE(chatContent: string) {
     inputValue.value = '';
     addMessage(chatContent, true);
     addMessage('', false);
+    if (currentBinding.value) {
+      bubbleItems.value[bubbleItems.value.length - 1].workflowRun = { title: currentBinding.value.title, status: 'running', nodes: 0 };
+    }
 
     // 这里有必要调用一下 BubbleList 组件的滚动到底部 手动触发 自动滚动
     bubbleListRef.value?.scrollToBottom();
@@ -208,6 +214,10 @@ async function startSSE(chatContent: string) {
     // 停止打字器状态
     if (bubbleItems.value.length) {
       const lastMessage = bubbleItems.value[bubbleItems.value.length - 1];
+      if (lastMessage.workflowRun?.status === 'running') {
+        lastMessage.workflowRun.status = 'error';
+        lastMessage.content += '\n\n> 连接已结束，但未收到流程完成事件，请在管理端确认执行结果。';
+      }
       lastMessage.typing = false;
       // 无条件重置 loading（停止打字动画）
       lastMessage.loading = false;
@@ -220,34 +230,6 @@ async function startSSE(chatContent: string) {
       bubbleItems.value = [...bubbleItems.value];
     }
   }
-}
-
-/**
- * 根据工作流绑定的 start 节点输入定义构造运行输入。
- * 约定：把本轮聊天内容填进第一个文本输入(type===1)；其它输入沿用绑定里预填的值。
- */
-function buildWorkflowInputs(
-  binding: { startInputs: WfNodeInputDef[]; inputs: WfNodeInput[] },
-  chatContent: string,
-): WfNodeInput[] {
-  const base
-    = binding.inputs && binding.inputs.length
-      ? binding.inputs.map(i => ({ ...i, content: { ...i.content } }))
-      : defaultInputsFromDefs(binding.startInputs);
-  const textInput = base.find(i => i.content.type === 1);
-  if (textInput) {
-    textInput.content.value = chatContent;
-  }
-  return base;
-}
-
-function defaultInputsFromDefs(defs: WfNodeInputDef[]): WfNodeInput[] {
-  return (defs || []).map(d => ({
-    uuid: d.uuid,
-    name: d.name,
-    content: { title: d.title, value: null, type: d.type },
-    required: d.required,
-  }));
 }
 
 // 封装数据处理逻辑
@@ -363,7 +345,15 @@ function handleWorkflowEvent(
 
   // [DONE] 流结束
   if (eventName === '[DONE]') {
-    console.log('[SSE] 工作流流结束');
+    const lastMessage = bubbleItems.value[bubbleItems.value.length - 1];
+    if (lastMessage) {
+      const output = workflowFinalText(dataObj);
+      if (output !== null)
+        lastMessage.content = output || '流程已完成，结束节点未返回内容。';
+      if (lastMessage.workflowRun)
+        lastMessage.workflowRun.status = 'success';
+      bubbleItems.value = [...bubbleItems.value];
+    }
     return true;
   }
 
@@ -373,7 +363,9 @@ function handleWorkflowEvent(
     const lastMessage = bubbleItems.value[bubbleItems.value.length - 1];
     if (lastMessage) {
       lastMessage.loading = false;
-      lastMessage.content += `\n\n> ❌ ${errMsg}`;
+      if (lastMessage.workflowRun)
+        lastMessage.workflowRun.status = 'error';
+      lastMessage.content += `\n\n> ${errMsg}`;
       bubbleItems.value = [...bubbleItems.value];
     }
     ElMessage.error(errMsg);
@@ -382,6 +374,9 @@ function handleWorkflowEvent(
 
   // 节点运行状态不在对话区单独展示，仅保留最终流式回答。
   if (eventName.startsWith('[NODE_RUN_')) {
+    const run = bubbleItems.value[bubbleItems.value.length - 1]?.workflowRun;
+    if (run)
+      run.nodes++;
     return false;
   }
 
@@ -514,7 +509,10 @@ function handleContentChunk(content: string) {
 async function cancelSSE() {
   cancel();
   if (bubbleItems.value.length) {
-    bubbleItems.value[bubbleItems.value.length - 1].typing = false;
+    const lastMessage = bubbleItems.value[bubbleItems.value.length - 1];
+    lastMessage.typing = false;
+    if (lastMessage.workflowRun)
+      lastMessage.workflowRun.status = 'stopped';
   }
 }
 
@@ -600,6 +598,7 @@ function sendMessageByKey(key: number) {
 
       <BubbleList ref="bubbleListRef" :list="bubbleItems" max-height="calc(100vh - 240px)">
         <template #header="{ item }">
+          <WorkflowRunStatus v-if="item.workflowRun" :title="item.workflowRun.title" :status="item.workflowRun.status" :nodes="item.workflowRun.nodes" />
           <Thinking
             v-if="item.reasoning_content"
             v-model="item.thinlCollapse"

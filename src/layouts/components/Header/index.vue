@@ -1,6 +1,7 @@
 <!-- Header 头部 -->
 <script setup lang="ts">
 import { onKeyStroke } from '@vueuse/core';
+import { useRoute } from 'vue-router';
 import { SIDE_BAR_WIDTH } from '@/config/index';
 import { useDesignStore, useUserStore } from '@/stores';
 import { useSessionStore } from '@/stores/modules/session';
@@ -13,19 +14,20 @@ import TitleEditing from './components/TitleEditing.vue';
 const userStore = useUserStore();
 const designStore = useDesignStore();
 const sessionStore = useSessionStore();
+const route = useRoute();
 
 const currentSession = computed(() => sessionStore.currentSession);
 
 onMounted(() => {
-  // 全局设置侧边栏默认宽度 (这个是不变的，一开始就设置)
-  document.documentElement.style.setProperty(`--sidebar-default-width`, `${SIDE_BAR_WIDTH}px`);
+  // 侧栏随窗口收窄，主内容与顶部导航共享同一个宽度。
+  document.documentElement.style.setProperty(`--sidebar-default-width`, `clamp(220px, 18vw, ${SIDE_BAR_WIDTH}px)`);
   if (designStore.isCollapse) {
     document.documentElement.style.setProperty(`--sidebar-left-container-default-width`, ``);
   }
   else {
     document.documentElement.style.setProperty(
       `--sidebar-left-container-default-width`,
-      `${SIDE_BAR_WIDTH}px`,
+      'var(--sidebar-default-width)',
     );
   }
 });
@@ -62,7 +64,8 @@ onKeyStroke(event => event.ctrlKey && event.key.toLowerCase() === 'k', handleCtr
 
             <!-- 中间 -->
             <div class="middle-box flex-1 min-w-0 ml-12px">
-              <TitleEditing />
+              <span v-if="route.name === 'mediaWorkbench'" class="font-size-14px">媒体工作台</span>
+              <TitleEditing v-else />
             </div>
           </div>
         </div>

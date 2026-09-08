@@ -3,12 +3,12 @@ export interface GetSessionListVO {
   id?: number;
   category?: string;
   modelName?: string;
-  modelDescribe?: string;
+  providerCode?: string;
+  modelDescribe?: string | null;
   modelPrice?: number;
   modelType?: string;
   modelShow?: string;
   systemPrompt?: string;
   apiHost?: string;
-  apiKey?: string;
   remark?: string;
 }

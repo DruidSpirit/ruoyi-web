@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import * as echarts from 'echarts';
 import { nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
+import { parseEChartsOption } from '@/utils/echartsOption';
 
 // 通过 selfProps 获取所有自定义属性
 const props = defineProps({
@@ -22,150 +23,6 @@ const height = () => props.selfProps?.height ?? '400px';
 const theme = () => props.selfProps?.theme ?? 'dark';
 const title = () => props.selfProps?.title ?? '';
 
-// 提取函数字符串并替换为占位符
-function extractFunctions(jsCode: string): { code: string; functions: Map<string, string> } {
-  const functions = new Map<string, string>();
-  let counter = 0;
-
-  // 匹配 function(...)  {...} 或 (params) => {...} 的模式
-  // eslint-disable-next-line regexp/no-super-linear-backtracking
-  const functionPattern = /:\s*(function\s*\([^)]*\)\s*\{(?:[^{}]|\{[^{}]*\})*\}|(?:[^=,{}\n]|\{[^{}]*\})*=>\s*\{(?:[^{}]|\{[^{}]*\})*\}|(?:[^=,{}\n]|\{[^{}]*\})*=>\s*[^,}\n]*(?=[,}\]]|$))/g;
-
-  let code = jsCode;
-  // 先处理标准的 function(params) { ... } 格式
-  for (const match of jsCode.matchAll(functionPattern)) {
-    const placeholder = `__FUNCTION_${counter}__`;
-    const functionStr = match[1];
-    functions.set(placeholder, functionStr);
-    code = code.replace(functionStr, `"${placeholder}"`);
-    counter++;
-  }
-
-  return { code, functions };
-}
-
-// 恢复函数
-function reconstructFunctions(obj: any, functions: Map<string, string>): any {
-  if (obj === null || obj === undefined) {
-    return obj;
-  }
-
-  if (typeof obj === 'string') {
-    const functionStr = functions.get(obj);
-    if (functionStr) {
-      try {
-        // 提取函数体和参数
-        const match = functionStr.match(/function\s*\(([^)]*)\)\s*\{([\s\S]*)\}/)
-          || functionStr.match(/\(([^)]*)\)\s*=>\s*\{([\s\S]*)\}/);
-        if (match) {
-          const [, params, body] = match;
-          // eslint-disable-next-line no-new-func
-          return new Function(params, body);
-        }
-      }
-      catch (e) {
-        console.warn('函数解析失败:', functionStr, e);
-      }
-    }
-    return obj;
-  }
-
-  if (Array.isArray(obj)) {
-    return obj.map(item => reconstructFunctions(item, functions));
-  }
-
-  if (typeof obj === 'object') {
-    const result: any = {};
-    for (const key in obj) {
-      result[key] = reconstructFunctions(obj[key], functions);
-    }
-    return result;
-  }
-
-  return obj;
-}
-
-// 将 JavaScript 对象字面量转换为有效的 JSON
-function convertJsObjectToJson(jsCode: string): string {
-  let cleaned = jsCode.trim();
-
-  // 如果已经是标准 JSON，直接返回
-  try {
-    JSON.parse(cleaned);
-    return cleaned;
-  }
-  catch {
-    // 继续处理
-  }
-
-  // 为无引号的键添加引号：key: value -> "key": value
-  cleaned = cleaned.replace(/([{,]\s*)([a-z_$][\w$]*)\s*:/gi, '$1"$2":');
-
-  // 处理单引号字符串，转换为双引号
-  cleaned = cleaned.replace(/'([^']*)'/g, '"$1"');
-
-  // 移除末尾的逗号
-  cleaned = cleaned.replace(/,(\s*[}\]])/g, '$1');
-
-  return cleaned;
-}
-
-// 解析ECharts配置
-function parseEChartsOption(data: string | object) {
-  try {
-    // 如果已经是对象，直接返回
-    if (typeof data === 'object' && data !== null) {
-      return data;
-    }
-
-    // 如果是字符串，进行解析
-    if (typeof data === 'string') {
-      let cleanedStr = data.trim();
-
-      // 处理 markdown 代码块格式：```echarts ... ``` 或 ```json ... ```
-
-      const codeBlockMatch = cleanedStr.match(/^```(?:[^`]|`(?!``))*```\s*$/);
-      if (codeBlockMatch) {
-        cleanedStr = codeBlockMatch[1].trim();
-      }
-
-      // 提取函数
-      const { code: codeWithoutFunctions, functions } = extractFunctions(cleanedStr);
-
-      // 尝试直接解析
-      try {
-        const parsed = JSON.parse(codeWithoutFunctions);
-        return reconstructFunctions(parsed, functions);
-      }
-      catch {
-        // 尝试转换 JavaScript 对象字面量为 JSON
-        try {
-          const jsonStr = convertJsObjectToJson(codeWithoutFunctions);
-          const parsed = JSON.parse(jsonStr);
-          return reconstructFunctions(parsed, functions);
-        }
-        catch {
-          // 最后再尝试其他修复方式
-          const fixedStr = codeWithoutFunctions
-            .replace(/'/g, '"') // 单引号转双引号
-            .replace(/(\w+)\s*:/g, '"$1":') // 无引号的键添加引号
-            .replace(/,\s*\}/g, '}') // 移除末尾逗号
-            .replace(/,\s*\]/g, ']'); // 移除数组末尾逗号
-
-          const parsed = JSON.parse(fixedStr);
-          return reconstructFunctions(parsed, functions);
-        }
-      }
-    }
-
-    return null;
-  }
-  catch (error) {
-    console.error('ECharts配置解析失败:', error, data);
-    return null;
-  }
-}
-
 // 渲染图表
 function renderChart() {
   if (!refEle.value) {
@@ -185,7 +42,7 @@ function renderChart() {
     else {
       console.error('[EchartsRenderer] 容器无法获取有效尺寸，放弃');
       if (refEle.value) {
-        refEle.value.innerHTML = '<div style="color: #999; padding: 20px;">容器尺寸无效 (0x0)</div>';
+        refEle.value.textContent = '容器尺寸无效 (0x0)';
       }
     }
     return;
@@ -195,10 +52,11 @@ function renderChart() {
   retryCount = 0;
 
   const configData = code();
-  console.log('[EchartsRenderer] 配置数据:', configData?.substring?.(0, 100) || 'empty');
 
   if (!configData) {
-    console.warn('[EchartsRenderer] 配置数据为空');
+    myChart?.dispose();
+    myChart = null;
+    refEle.value.textContent = '';
     return;
   }
 
@@ -206,22 +64,27 @@ function renderChart() {
   console.log('[EchartsRenderer] 解析结果:', option ? '成功' : '失败');
 
   if (!option) {
-    refEle.value.innerHTML = '<div style="color: red; padding: 20px;">配置解析失败</div>';
+    myChart?.dispose();
+    myChart = null;
+    refEle.value.textContent = '配置解析失败：请提供包含 series 的合法 ECharts JSON';
     return;
   }
 
   try {
     console.log('[EchartsRenderer] 初始化 ECharts...');
     if (!myChart) {
+      refEle.value.textContent = '';
       myChart = echarts.init(refEle.value, theme());
       console.log('[EchartsRenderer] ECharts 初始化完成');
     }
-    myChart.setOption(option);
+    myChart.setOption(option, { notMerge: true });
     console.log('[EchartsRenderer] 配置设置成功');
   }
   catch (error) {
     console.error('[EchartsRenderer] 图表渲染失败:', error);
-    refEle.value.innerHTML = `<div style="color: red; padding: 20px;">渲染失败: ${error}</div>`;
+    myChart?.dispose();
+    myChart = null;
+    refEle.value.textContent = '图表渲染失败，请检查图表类型与配置';
   }
 }
 

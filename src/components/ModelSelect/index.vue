@@ -22,7 +22,7 @@ onMounted(async () => {
   // 设置默认模型
   if (
     modelStore.modelList.length > 0
-    && (!modelStore.currentModelInfo || !modelStore.currentModelInfo.modelDescribe)
+    && !modelStore.currentModelInfo?.modelName
   ) {
     modelStore.setCurrentModelInfo(modelStore.modelList[0]);
   }
@@ -33,10 +33,14 @@ const currentModelName = computed(
     if (!isLoggedIn.value)
       return '登录后选择模型';
 
-    return modelStore.currentModelInfo && modelStore.currentModelInfo.modelDescribe;
+    return getModelDisplayName(modelStore.currentModelInfo);
   },
 );
 const popoverList = computed(() => modelStore.modelList);
+
+function getModelDisplayName(model?: GetSessionListVO) {
+  return model?.modelDescribe?.trim() || model?.modelName || '选择模型';
+}
 
 /* 弹出面板 开始 */
 const popoverStyle = ref({
@@ -112,16 +116,16 @@ function handleClick(item: GetSessionListVO) {
             <template #trigger>
               <div
                 class="popover-content-box-item p-4px font-size-12px text-overflow line-height-16px"
-                :class="{ 'bg-[rgba(0,0,0,.04)] is-select': item.modelDescribe === currentModelName }"
+                :class="{ 'bg-[rgba(0,0,0,.04)] is-select': item.id != null && item.id === modelStore.currentModelInfo?.id }"
                 @click="handleClick(item)"
               >
-                {{ item.modelDescribe }}
+                {{ getModelDisplayName(item) }}
               </div>
             </template>
             <div
               class="popover-content-box-item-text text-wrap max-w-200px rounded-lg p-8px font-size-12px line-height-tight"
             >
-              {{ item.remark }}
+              {{ item.modelName || getModelDisplayName(item) }}
             </div>
           </Popover>
         </div>

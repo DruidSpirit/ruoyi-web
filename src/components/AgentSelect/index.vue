@@ -3,6 +3,7 @@
 import type { AgentVO } from '@/api/agent/types';
 import Popover from '@/components/Popover/index.vue';
 import SvgIcon from '@/components/SvgIcon/index.vue';
+import WorkflowIcon from '@/components/WorkflowIcon/index.vue';
 import { useAgentStore } from '@/stores/modules/agent';
 import { useChatStore } from '@/stores/modules/chat';
 import { useModelStore } from '@/stores/modules/model';
@@ -88,9 +89,11 @@ async function handleUseModel() {
           class="agent-select-box select-none flex items-center gap-4px p-10px rounded-10px cursor-pointer font-size-12px"
         >
           <div class="agent-select-box-icon">
-            <SvgIcon name="models" size="12" />
+            <WorkflowIcon v-if="isWorkflow" class="workflow-icon" />
+            <SvgIcon v-else name="models" size="12" />
           </div>
           <div class="agent-select-box-text font-size-12px">
+            <span v-if="isWorkflow" class="workflow-label">工作流 · </span>
             {{ currentLabel }}
           </div>
         </div>
@@ -145,11 +148,14 @@ async function handleUseModel() {
     border-color: rgb(0 0 0 / 15%);
   }
 
-  background: var(--el-color-primary-light-9, rgb(235.9 245.3 255));
-  border-color: var(--el-color-primary, #409eff);
-  color: var(--el-color-primary, #409eff);
-  font-weight: 600;
+  background: var(--el-bg-color);
+  border-color: var(--el-border-color);
+  color: var(--el-text-color-primary);
+  font-weight: 500;
 }
+
+.workflow-icon { display: block; font-size: 16px; color: #387665; }
+.workflow-label { color: var(--el-text-color-secondary); }
 
 .popover-content-box-item.is-select {
   font-weight: 700;

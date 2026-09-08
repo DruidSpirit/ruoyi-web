@@ -8,6 +8,7 @@ export interface MediaGenerationResponse {
   dataUrl?: string;
   id?: string;
   status?: string;
+  lastFrameUrl?: string;
   rawResponse?: string;
 }
 

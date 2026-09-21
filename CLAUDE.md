@@ -8,7 +8,13 @@ This is **ruoyi-web**, a Vue 3 AI chat application built with TypeScript, Vite, 
 
 ## Commands
 
+Use Node.js >=22.13.0 and pnpm 11.0.9 (`packageManager` in `package.json`). pnpm is the only supported package manager; maintain only `pnpm-lock.yaml`. Use pnpm for dependency changes and commit the manifest and lockfile together. Do not generate or commit npm or Yarn lockfiles.
+
 ```bash
+# Setup
+npm install --global pnpm@11.0.9  # Bootstrap pnpm only
+pnpm install --frozen-lockfile   # Install locked project dependencies
+
 # Development
 pnpm dev          # Start dev server
 

@@ -97,9 +97,14 @@ docker-compose up -d --build
 
 ## 本地开发
 
+请使用 `package.json` 中声明的 **Node.js 22.13.0 及以上版本**和 **pnpm 11.0.9**。本项目统一使用 pnpm 进行本地开发和 Docker 构建，`pnpm-lock.yaml` 是唯一维护的依赖锁文件，不支持使用 npm 或 Yarn 安装项目依赖。
+
 ```bash
-# 安装依赖
-pnpm install
+# 安装指定版本的 pnpm（npm 仅用于安装此工具）
+npm install --global pnpm@11.0.9
+
+# 按锁文件安装依赖
+pnpm install --frozen-lockfile
 
 # 启动开发服务器
 pnpm dev
@@ -107,6 +112,8 @@ pnpm dev
 # 构建生产版本
 pnpm build
 ```
+
+需要新增、移除或升级依赖时，请使用 `pnpm add`、`pnpm remove` 或 `pnpm update`，并同时提交 `package.json` 和 `pnpm-lock.yaml`，不要提交其他包管理器生成的锁文件。如果之前使用 npm 或 Yarn 安装过依赖，请先删除已有的 `node_modules` 目录，再使用 pnpm 安装。
 
 ## 常见问题
 
